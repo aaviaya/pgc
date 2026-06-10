@@ -19,6 +19,16 @@
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+    <meta name="description" content="PGC Dashboard — Sistem informasi iuran warga Puri Griasadi Cibogo. Pantau pembayaran iuran, pengeluaran, dan laporan keuangan bulanan.">
+    <meta property="og:title" content="{% block og_title %}PGC Dashboard{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Sistem informasi iuran warga Puri Griasadi Cibogo. Pantau pembayaran iuran, pengeluaran, dan laporan keuangan bulanan.{% endblock %}">
+    <meta property="og:image" content="{{ request.host_url.rstrip('/') }}{{ url_for('static', filename='img/logo.png') }}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}PGC Dashboard{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Sistem informasi iuran warga Puri Griasadi Cibogo.{% endblock %}">
+    <meta name="twitter:image" content="{{ request.host_url.rstrip('/') }}{{ url_for('static', filename='img/logo.png') }}">
 </head>
 <body class="bg-gray-50">
     <nav class="bg-primary-600 text-white shadow-lg">
