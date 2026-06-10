@@ -33,65 +33,64 @@ BLOK_LIST = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'C3', 'D1', '
 BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 KATEGORI_LIST = ['Kas', 'Keamanan', 'Sampah', 'Fee Wifi']
 
+_db_initialized = False
+
 def get_db():
-    return Database()
+    global _db_initialized
+    conn = Database()
+    if not _db_initialized:
+        conn.executescript('''
+            CREATE TABLE IF NOT EXISTS residents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                blok TEXT NOT NULL,
+                no_rumah TEXT NOT NULL,
+                nama TEXT DEFAULT '',
+                status TEXT DEFAULT 'Belum Huni',
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                updated_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                resident_id INTEGER NOT NULL,
+                bulan TEXT NOT NULL,
+                tahun INTEGER NOT NULL,
+                jumlah INTEGER DEFAULT 0,
+                paid_at TEXT DEFAULT (datetime('now','localtime')),
+                FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tahun INTEGER NOT NULL,
+                bulan TEXT NOT NULL,
+                kategori TEXT NOT NULL,
+                tanggal TEXT,
+                keterangan TEXT DEFAULT '',
+                jumlah INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+            CREATE TABLE IF NOT EXISTS iuran_kategori (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tahun INTEGER NOT NULL,
+                nama TEXT NOT NULL,
+                jumlah INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_resident_blok_no ON residents(blok, no_rumah);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_unique ON payments(resident_id, bulan, tahun);
+        ''')
 
-def init_db():
-    conn = get_db()
-    conn.executescript('''
-        CREATE TABLE IF NOT EXISTS residents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            blok TEXT NOT NULL,
-            no_rumah TEXT NOT NULL,
-            nama TEXT DEFAULT '',
-            status TEXT DEFAULT 'Belum Huni',
-            created_at TEXT DEFAULT (datetime('now','localtime')),
-            updated_at TEXT DEFAULT (datetime('now','localtime'))
-        );
-        CREATE TABLE IF NOT EXISTS payments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            resident_id INTEGER NOT NULL,
-            bulan TEXT NOT NULL,
-            tahun INTEGER NOT NULL,
-            jumlah INTEGER DEFAULT 0,
-            paid_at TEXT DEFAULT (datetime('now','localtime')),
-            FOREIGN KEY (resident_id) REFERENCES residents(id) ON DELETE CASCADE
-        );
-        CREATE TABLE IF NOT EXISTS expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tahun INTEGER NOT NULL,
-            bulan TEXT NOT NULL,
-            kategori TEXT NOT NULL,
-            tanggal TEXT,
-            keterangan TEXT DEFAULT '',
-            jumlah INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now','localtime'))
-        );
-        CREATE TABLE IF NOT EXISTS iuran_kategori (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tahun INTEGER NOT NULL,
-            nama TEXT NOT NULL,
-            jumlah INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now','localtime'))
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_resident_blok_no ON residents(blok, no_rumah);
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_unique ON payments(resident_id, bulan, tahun);
-    ''')
-
-    # Seed iuran_kategori defaults if empty
-    ada = conn.execute("SELECT COUNT(*) FROM iuran_kategori").fetchone()[0]
-    if ada == 0:
-        for t in [2025, 2026]:
-            if t == 2025:
-                conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Kas', 30000))
-            else:
-                conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Sampah', 20000))
-                conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Kas', 10000))
-                conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Keamanan', 15000))
-        conn.commit()
-    conn.close()
-
-init_db()
+        # Seed iuran_kategori defaults if empty
+        ada = conn.execute("SELECT COUNT(*) FROM iuran_kategori").fetchone()[0]
+        if ada == 0:
+            for t in [2025, 2026]:
+                if t == 2025:
+                    conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Kas', 30000))
+                else:
+                    conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Sampah', 20000))
+                    conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Kas', 10000))
+                    conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Keamanan', 15000))
+        _db_initialized = True
+    return conn
 
 def tahun_aktif():
     return request.args.get('tahun', type=int) or 2026
