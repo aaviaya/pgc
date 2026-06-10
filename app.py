@@ -367,6 +367,52 @@ def pengaturan():
     tahun = request.args.get('tahun', type=int) or 2026
     return render_template('pengaturan.html', tahun=tahun)
 
+@app.route('/pengaturan/export')
+@login_required
+def pengaturan_export():
+    import json
+    conn = get_db()
+    data = {}
+    for table in ['residents', 'payments', 'expenses', 'iuran_kategori']:
+        rows = conn.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()
+        data[table] = [dict(r) for r in rows]
+    conn.close()
+    resp = jsonify(data)
+    resp.headers['Content-Disposition'] = f'attachment; filename=pgc_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    return resp
+
+@app.route('/pengaturan/import', methods=['POST'])
+@login_required
+def pengaturan_import():
+    import json
+    file = request.files.get('file')
+    if not file or not file.filename:
+        flash('Pilih file backup terlebih dahulu', 'danger')
+        return redirect(url_for('pengaturan'))
+    try:
+        data = json.load(file)
+    except Exception:
+        flash('File backup tidak valid', 'danger')
+        return redirect(url_for('pengaturan'))
+    conn = get_db()
+    tables = ['iuran_kategori', 'expenses', 'payments', 'residents']
+    try:
+        for table in tables:
+            if table in data and isinstance(data[table], list) and len(data[table]) > 0:
+                conn.execute(f"DELETE FROM {table}")
+                for row in data[table]:
+                    cols = ','.join(row.keys())
+                    vals = list(row.values())
+                    ph = ','.join(['?' for _ in row])
+                    conn.execute(f"INSERT INTO {table} ({cols}) VALUES ({ph})", vals)
+        conn.commit()
+        flash('Restore database berhasil!', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Gagal restore: {e}', 'danger')
+    conn.close()
+    return redirect(url_for('pengaturan'))
+
 @app.route('/iuran-kategori')
 @login_required
 def iuran_kategori_list():
