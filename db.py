@@ -44,6 +44,15 @@ class Database:
         else:
             return self._conn.execute(sql, params or [])
 
+    def scalar(self, sql, params=None):
+        cur = self.execute(sql, params)
+        row = cur.fetchone()
+        if row is None:
+            return None
+        if self._pg:
+            return row[list(row.keys())[0]]
+        return row[0]
+
     def executescript(self, sql):
         if self._pg:
             statements = [s.strip() for s in sql.split(';') if s.strip()]

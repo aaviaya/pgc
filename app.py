@@ -80,7 +80,7 @@ def get_db():
         ''')
 
         # Seed iuran_kategori defaults if empty
-        ada = conn.execute("SELECT COUNT(*) FROM iuran_kategori").fetchone()[0]
+        ada = conn.scalar("SELECT COUNT(*) FROM iuran_kategori")
         if ada == 0:
             for t in [2025, 2026]:
                 if t == 2025:
@@ -131,20 +131,20 @@ def dashboard():
     if not tahun:
         tahun = 2026
 
-    total_warga = conn.execute("SELECT COUNT(*) FROM residents").fetchone()[0]
-    total_huni = conn.execute("SELECT COUNT(*) FROM residents WHERE status='Huni'").fetchone()[0]
-    total_belum = conn.execute("SELECT COUNT(*) FROM residents WHERE status='Belum Huni' OR status='Belum'").fetchone()[0]
-    total_iuran = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM payments WHERE tahun=?", (tahun,)).fetchone()[0]
-    total_pengeluaran = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=?", (tahun,)).fetchone()[0]
+    total_warga = conn.scalar("SELECT COUNT(*) FROM residents")
+    total_huni = conn.scalar("SELECT COUNT(*) FROM residents WHERE status='Huni'")
+    total_belum = conn.scalar("SELECT COUNT(*) FROM residents WHERE status='Belum Huni' OR status='Belum'")
+    total_iuran = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM payments WHERE tahun=?", (tahun,))
+    total_pengeluaran = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=?", (tahun,))
 
     per_bulan = {}
     for b in BULAN_LIST:
-        total = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM payments WHERE tahun=? AND bulan=?", (tahun, b)).fetchone()[0]
+        total = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM payments WHERE tahun=? AND bulan=?", (tahun, b))
         per_bulan[b] = total
 
     pengeluaran_per_bulan = {}
     for b in BULAN_LIST:
-        total = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND bulan=?", (tahun, b)).fetchone()[0]
+        total = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND bulan=?", (tahun, b))
         pengeluaran_per_bulan[b] = total
 
     recent = conn.execute('''
@@ -156,8 +156,8 @@ def dashboard():
 
     by_blok = []
     for b in BLOK_LIST:
-        cnt = conn.execute("SELECT COUNT(*) FROM residents WHERE blok=?", (b,)).fetchone()[0]
-        cnt_huni = conn.execute("SELECT COUNT(*) FROM residents WHERE blok=? AND status='Huni'", (b,)).fetchone()[0]
+        cnt = conn.scalar("SELECT COUNT(*) FROM residents WHERE blok=?", (b,))
+        cnt_huni = conn.scalar("SELECT COUNT(*) FROM residents WHERE blok=? AND status='Huni'", (b,))
         if cnt > 0:
             by_blok.append({'blok': b, 'total': cnt, 'huni': cnt_huni})
 
@@ -169,7 +169,7 @@ def dashboard():
     # Payment rate per bulan (% warga huni yang sudah bayar)
     payment_rate = {}
     for b in BULAN_LIST:
-        paid = conn.execute("SELECT COUNT(DISTINCT p.resident_id) FROM payments p JOIN residents r ON p.resident_id=r.id WHERE p.tahun=? AND p.bulan=? AND r.status='Huni' AND p.jumlah>0", (tahun, b)).fetchone()[0]
+        paid = conn.scalar("SELECT COUNT(DISTINCT p.resident_id) FROM payments p JOIN residents r ON p.resident_id=r.id WHERE p.tahun=? AND p.bulan=? AND r.status='Huni' AND p.jumlah>0", (tahun, b))
         payment_rate[b] = paid
 
     conn.close()
@@ -197,10 +197,10 @@ def warga_list():
     count_params = []
     if blok_filter:
         count_params.append(blok_filter)
-    count_row = conn.execute(
+    count_row = conn.scalar(
         f"SELECT COUNT(*) FROM residents WHERE 1=1" + (" AND blok=?" if blok_filter else ""),
         count_params
-    ).fetchone()[0]
+    )
 
     total_pages = max(1, (count_row + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
@@ -419,7 +419,7 @@ def pengeluaran_list():
     tahun = request.args.get('tahun', type=int) or 2026
     page = request.args.get('page', 1, type=int)
     per_page = 50
-    total = conn.execute("SELECT COUNT(*) FROM expenses WHERE tahun=?", (tahun,)).fetchone()[0]
+    total = conn.scalar("SELECT COUNT(*) FROM expenses WHERE tahun=?", (tahun,))
     total_pages = max(1, (total + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
     offset = (page - 1) * per_page
@@ -427,16 +427,16 @@ def pengeluaran_list():
 
     per_bulan = {}
     for b in BULAN_LIST:
-        total = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND bulan=?", (tahun, b)).fetchone()[0]
+        total = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND bulan=?", (tahun, b))
         per_bulan[b] = total
 
     # Sisa kas per kategori (dynamic from DB)
     sisa_kas = {}
-    total_iuran = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM payments WHERE tahun=?", (tahun,)).fetchone()[0]
+    total_iuran = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM payments WHERE tahun=?", (tahun,))
     kategori_db_raw = [r['kategori'] for r in conn.execute("SELECT DISTINCT kategori FROM expenses WHERE tahun=? ORDER BY kategori", (tahun,)).fetchall()]
     kategori_db = list(dict.fromkeys(kategori_db_raw + KATEGORI_LIST))
     for k in kategori_db:
-        pengeluaran = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND kategori=?", (tahun, k)).fetchone()[0]
+        pengeluaran = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND kategori=?", (tahun, k))
         sisa_kas[k] = pengeluaran
 
     conn.close()
@@ -539,7 +539,7 @@ def laporan():
     if blok:
         count_where = "WHERE blok=?"
         count_params.append(blok)
-    total_rows = conn.execute(f"SELECT COUNT(*) FROM residents {count_where}", count_params).fetchone()[0]
+    total_rows = conn.scalar(f"SELECT COUNT(*) FROM residents {count_where}", count_params)
     total_pages = max(1, (total_rows + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
     offset = (page - 1) * per_page
@@ -574,7 +574,7 @@ def laporan():
         if blok:
             sql_tpb += " AND r.blok=?"
             params_tpb.append(blok)
-        t = conn.execute(sql_tpb, params_tpb).fetchone()[0]
+        t = conn.scalar(sql_tpb, params_tpb)
         total_per_bulan[b] = t
 
     conn.close()
@@ -591,16 +591,16 @@ def laporan_pengeluaran():
     page = request.args.get('page', 1, type=int)
     per_page = 50
 
-    total_rows = conn.execute("SELECT COUNT(*) FROM expenses WHERE tahun=?", (tahun,)).fetchone()[0]
+    total_rows = conn.scalar("SELECT COUNT(*) FROM expenses WHERE tahun=?", (tahun,))
     total_pages = max(1, (total_rows + per_page - 1) // per_page)
     page = max(1, min(page, total_pages))
     offset = (page - 1) * per_page
 
     expenses = conn.execute("SELECT * FROM expenses WHERE tahun=? ORDER BY id LIMIT ? OFFSET ?", (tahun, per_page, offset)).fetchall()
-    total_pengeluaran = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=?", (tahun,)).fetchone()[0]
+    total_pengeluaran = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=?", (tahun,))
     per_bulan = {}
     for b in BULAN_LIST:
-        per_bulan[b] = conn.execute("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND bulan=?", (tahun, b)).fetchone()[0]
+        per_bulan[b] = conn.scalar("SELECT COALESCE(SUM(jumlah),0) FROM expenses WHERE tahun=? AND bulan=?", (tahun, b))
     conn.close()
     return render_template('laporan_pengeluaran.html', expenses=expenses,
         total_pengeluaran=total_pengeluaran, per_bulan=per_bulan,
