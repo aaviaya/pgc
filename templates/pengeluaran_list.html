@@ -1,0 +1,164 @@
+{% extends "layout.html" %}
+{% block title %}Pengeluaran {{ tahun }} - PGC{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <div class="flex items-center gap-3">
+        <h3 class="font-semibold text-gray-800 text-lg"><i class="fas fa-shopping-cart text-red-500 mr-2"></i>Pengeluaran {{ tahun }}</h3>
+        <div class="flex gap-1">
+            {% for t in tahun_list %}
+            <a href="{{ url_for('pengeluaran_list', tahun=t) }}" class="px-3 py-1 rounded text-xs font-medium {% if t == tahun %}bg-red-100 text-red-700{% else %}text-gray-400 hover:text-gray-600{% endif %}">{{ t }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% if session.get('admin') %}
+    <a href="{{ url_for('pengeluaran_tambah', tahun=tahun) }}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-sm transition"><i class="fas fa-plus mr-1"></i>Tambah</a>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow p-4 border-l-4 border-blue-500">
+        <p class="text-gray-500 text-xs uppercase">Total Iuran</p>
+        <p class="text-xl font-bold text-gray-800">{{ "{:,.0f}".format(total_iuran) }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4 border-l-4 border-red-500">
+        <p class="text-gray-500 text-xs uppercase">Total Pengeluaran</p>
+        <p class="text-xl font-bold text-red-600">{{ "{:,.0f}".format(sisa_kas.values()|sum) }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
+        <p class="text-gray-500 text-xs uppercase">Sisa Kas</p>
+        <p class="text-xl font-bold text-green-600">{{ "{:,.0f}".format(total_iuran - sisa_kas.values()|sum) }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4 border-l-4 border-accent-500">
+        <p class="text-gray-500 text-xs uppercase">Persentase</p>
+        <p class="text-xl font-bold text-accent-600">{{ "%.1f"|format(sisa_kas.values()|sum / total_iuran * 100 if total_iuran > 0 else 0) }}%</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-xl shadow">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h4 class="font-semibold text-gray-700 text-sm"><i class="fas fa-pie-chart text-blue-500 mr-1"></i>Pengeluaran per Kategori</h4>
+        </div>
+        <div class="p-5 space-y-3">
+            {% for k in sisa_kas.keys() %}
+            {% set val = sisa_kas.get(k, 0) %}
+            {% set pct = (val / sisa_kas.values()|sum * 100) if sisa_kas.values()|sum > 0 else 0 %}
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="font-medium text-gray-700">{{ k }}</span>
+                    <span class="text-gray-500">{{ "{:,.0f}".format(val) }} ({{ "%.1f"|format(pct) }}%)</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-2">
+                    <div class="bg-blue-500 h-2 rounded-full" style="width: {{ pct }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h4 class="font-semibold text-gray-700 text-sm"><i class="fas fa-calendar text-red-500 mr-1"></i>Pengeluaran per Bulan</h4>
+        </div>
+        <div class="p-5 space-y-1">
+            {% set max_month = per_bulan.values()|max %}
+            {% for b in ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'] %}
+            {% set val = per_bulan.get(b, 0) %}
+            {% set pct = (val / max_month * 100) if max_month > 0 else 0 %}
+            <div class="flex items-center gap-2 text-sm">
+                <span class="w-20 text-gray-600">{{ b[:3] }}</span>
+                <div class="flex-1 bg-gray-100 rounded-full h-2">
+                    <div class="bg-red-400 h-2 rounded-full" style="width: {{ pct }}%"></div>
+                </div>
+                <span class="w-20 text-right text-gray-500">{{ "{:,.0f}".format(val) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h4 class="font-semibold text-gray-700 text-sm"><i class="fas fa-list text-gray-500 mr-1"></i>Detail Pengeluaran</h4>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
+                    <th class="text-left px-4 py-3">No</th>
+                    <th class="text-left px-4 py-3">Tanggal</th>
+                    <th class="text-left px-4 py-3">Bulan</th>
+                    <th class="text-left px-4 py-3">Kategori</th>
+                    <th class="text-left px-4 py-3">Keterangan</th>
+                    <th class="text-center px-4 py-3">Bukti</th>
+                    <th class="text-right px-4 py-3">Jumlah</th>
+                    {% if session.get('admin') %}
+                    <th class="text-center px-4 py-3">Aksi</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for e in rows %}
+                <tr class="hover:bg-red-50 transition">
+                    <td class="px-4 py-3 text-gray-400">{{ offset + loop.index }}</td>
+                    <td class="px-4 py-3">{{ e.tanggal or '-' }}</td>
+                    <td class="px-4 py-3">{{ e.bulan }}</td>
+                    <td class="px-4 py-3">
+                        {% set colors = {'Kas':'bg-blue-100 text-blue-700','Keamanan':'bg-green-100 text-green-700','Sampah':'bg-yellow-100 text-yellow-700','Fee Wifi':'bg-purple-100 text-purple-700'} %}
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ colors.get(e.kategori, 'bg-gray-100 text-gray-700') }}">
+                            {{ e.kategori }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 max-w-xs truncate">{{ e.keterangan }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if e.bukti %}
+                        <a href="{{ url_for('uploaded_file', filename=e.bukti) }}" target="_blank" class="text-blue-500 hover:text-blue-700" title="Lihat bukti">
+                            <i class="fas fa-file-image text-lg"></i>
+                        </a>
+                        {% else %}
+                        <span class="text-gray-300"><i class="fas fa-file-image text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right font-mono text-red-600">{{ "{:,.0f}".format(e.jumlah) }}</td>
+                    {% if session.get('admin') %}
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex justify-center gap-1">
+                            <a href="{{ url_for('pengeluaran_edit', id=e.id) }}" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs transition"><i class="fas fa-edit"></i></a>
+                            <form method="POST" action="{{ url_for('pengeluaran_hapus', id=e.id) }}" onsubmit="return confirm('Hapus pengeluaran ini?')" class="inline">
+                                <button class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-xs transition"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ 8 if session.get('admin') else 7 }}" class="text-center py-8 text-gray-400">Belum ada pengeluaran</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+        <span class="text-xs text-gray-400">{{ total }} data</span>
+        <div class="flex gap-1">
+            {% if page > 1 %}
+            <a href="{{ url_for('pengeluaran_list', tahun=tahun, page=page-1) }}" class="px-3 py-1 rounded text-xs border hover:bg-gray-50">&laquo;</a>
+            {% endif %}
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                <span class="px-3 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">{{ p }}</span>
+                {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                <a href="{{ url_for('pengeluaran_list', tahun=tahun, page=p) }}" class="px-3 py-1 rounded text-xs border hover:bg-gray-50">{{ p }}</a>
+                {% elif p == page - 3 or p == page + 3 %}
+                <span class="px-2 py-1 text-gray-300">...</span>
+                {% endif %}
+            {% endfor %}
+            {% if page < total_pages %}
+            <a href="{{ url_for('pengeluaran_list', tahun=tahun, page=page+1) }}" class="px-3 py-1 rounded text-xs border hover:bg-gray-50">&raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

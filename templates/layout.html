@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PGC Dashboard{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' },
+                        accent: { 50: '#fefce8', 100: '#fef9c3', 200: '#fef08a', 300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207', 800: '#854d0e', 900: '#713f12' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-primary-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <a href="{{ url_for('dashboard', tahun=tahun) }}" class="flex items-center space-x-2">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="PGC" class="h-8 w-8 rounded">
+                    <span class="font-bold text-lg">PGC Dashboard</span>
+                </a>
+                <button id="nav-toggle" class="md:hidden p-2 rounded-lg hover:bg-primary-700 transition">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div id="nav-menu" class="hidden md:flex items-center space-x-1">
+                    <a href="{{ url_for('dashboard', tahun=tahun) }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-chart-pie mr-1"></i>Dashboard</a>
+                    <a href="{{ url_for('warga_list', tahun=tahun) }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-users mr-1"></i>Warga</a>
+                    <a href="{{ url_for('pengeluaran_list', tahun=tahun) }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-shopping-cart mr-1"></i>Pengeluaran</a>
+                    <a href="{{ url_for('laporan', tahun=tahun) }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-file-alt mr-1"></i>Laporan</a>
+                    {% if session.get('admin') %}
+                    <a href="{{ url_for('pengaturan') }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-cog mr-1"></i>Pengaturan</a>
+                    <a href="{{ url_for('logout') }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-sign-out-alt mr-1"></i>Logout</a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}" class="px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-lock mr-1"></i>Admin</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div id="nav-mobile" class="hidden md:hidden pb-3 space-y-1">
+                <a href="{{ url_for('dashboard', tahun=tahun) }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-chart-pie mr-2"></i>Dashboard</a>
+                <a href="{{ url_for('warga_list', tahun=tahun) }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-users mr-2"></i>Warga</a>
+                <a href="{{ url_for('pengeluaran_list', tahun=tahun) }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-shopping-cart mr-2"></i>Pengeluaran</a>
+                <a href="{{ url_for('laporan', tahun=tahun) }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-file-alt mr-2"></i>Laporan</a>
+                {% if session.get('admin') %}
+                <a href="{{ url_for('pengaturan') }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-cog mr-2"></i>Pengaturan</a>
+                <a href="{{ url_for('logout') }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="block px-3 py-2 rounded-lg hover:bg-primary-700 transition text-sm"><i class="fas fa-lock mr-2"></i>Admin</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    <script>
+        document.getElementById('nav-toggle').addEventListener('click', function() {
+            var mobile = document.getElementById('nav-mobile');
+            mobile.classList.toggle('hidden');
+        });
+    </script>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 px-4 py-3 rounded-lg text-white {% if category == 'success' %}bg-green-500{% elif category == 'danger' %}bg-red-500{% else %}bg-blue-500{% endif %} flex justify-between items-center shadow">
+            <span>{{ message }}</span>
+            <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="bg-white border-t mt-8 py-4 text-center text-gray-500 text-sm">
+        &copy; {{ tahun_range }} Puri Griasadi Cibogo &mdash; Iuran Warga
+    </footer>
+
+    <script>
+        function formatRupiah(n) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

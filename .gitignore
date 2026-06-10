@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.log
+pgc.db
+uploads/
+app_err.log

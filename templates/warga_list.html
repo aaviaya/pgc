@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block title %}Data Warga {{ tahun }} - PGC{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl shadow">
+    <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
+        <div class="flex items-center gap-3">
+            <h3 class="font-semibold text-gray-800"><i class="fas fa-users text-primary-500 mr-2"></i>Data Warga</h3>
+            <div class="flex gap-1">
+                {% for t in tahun_list %}
+                <a href="{{ url_for('warga_list', tahun=t, blok=blok_filter, sort=sort, order=order) }}" class="px-3 py-1 rounded text-xs font-medium {% if t == tahun %}bg-primary-100 text-primary-700{% else %}text-gray-400 hover:text-gray-600{% endif %}">{{ t }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <form method="GET" class="flex items-center gap-2">
+                <input type="hidden" name="tahun" value="{{ tahun }}">
+                <input type="hidden" name="sort" value="{{ sort }}">
+                <input type="hidden" name="order" value="{{ order }}">
+                <input type="hidden" name="page" value="1">
+                <select name="blok" onchange="this.form.submit()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+                    <option value="">Semua Blok</option>
+                    {% for b in blok_list %}
+                    <option value="{{ b }}" {% if blok_filter == b %}selected{% endif %}>{{ b }}</option>
+                    {% endfor %}
+                </select>
+                {% if blok_filter %}
+                <a href="{{ url_for('warga_list', tahun=tahun) }}" class="text-gray-400 hover:text-gray-600 text-sm"><i class="fas fa-times"></i></a>
+                {% endif %}
+            </form>
+            {% if session.get('admin') %}
+            <a href="{{ url_for('warga_tambah', tahun=tahun) }}" class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-1.5 rounded-lg text-sm transition"><i class="fas fa-plus mr-1"></i>Tambah</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
+                    <th class="text-center px-2 py-3 w-10">No</th>
+                    {% for col, label in [('blok','Blok'),('no_rumah','No'),('nama','Nama'),('status','Status')] %}
+                    <th class="text-left px-4 py-3">
+                        <a href="{{ url_for('warga_list', tahun=tahun, blok=blok_filter, sort=col, order='desc' if sort==col and order=='asc' else 'asc', page=1) }}" class="hover:text-primary-600">
+                            {{ label }}
+                            {% if sort == col %}<i class="fas fa-sort-{{ 'up' if order=='asc' else 'down' }} text-primary-500 ml-1"></i>{% endif %}
+                        </a>
+                    </th>
+                    {% endfor %}
+                    <th class="text-right px-4 py-3">
+                        <a href="{{ url_for('warga_list', tahun=tahun, blok=blok_filter, sort='total', order='desc' if sort=='total' and order=='asc' else 'asc', page=1) }}" class="hover:text-primary-600">
+                            Dibayar {{ tahun }}
+                            {% if sort == 'total' %}<i class="fas fa-sort-{{ 'up' if order=='asc' else 'down' }} text-primary-500 ml-1"></i>{% endif %}
+                        </a>
+                    </th>
+                    {% if session.get('admin') %}
+                    <th class="text-center px-4 py-3">Aksi</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for r in rows %}
+                <tr class="hover:bg-orange-50 transition">
+                    <td class="px-2 py-3 text-center text-gray-400 text-xs">{{ (page-1)*50 + loop.index }}</td>
+                    <td class="px-4 py-3 font-medium">{{ r.blok }}</td>
+                    <td class="px-4 py-3">{{ r.no_rumah }}</td>
+                    <td class="px-4 py-3">{{ r.nama or '-' }}</td>
+                    <td class="px-4 py-3">
+                        {% if r.status == 'Huni' or r.status == 'Sudah' %}
+                        <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">{{ r.status }}</span>
+                        {% else %}
+                        <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs font-medium">{{ r.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right font-mono">{{ "{:,.0f}".format(r.total_dibayar) }}</td>
+                    {% if session.get('admin') %}
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex justify-center gap-1">
+                            <a href="{{ url_for('warga_bayar', id=r.id, tahun=tahun) }}" class="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded text-xs transition" title="Bayar"><i class="fas fa-money-bill"></i></a>
+                            <a href="{{ url_for('warga_edit', id=r.id, tahun=tahun) }}" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs transition" title="Edit"><i class="fas fa-edit"></i></a>
+                            <form method="POST" action="{{ url_for('warga_hapus', id=r.id) }}" onsubmit="return confirm('Hapus warga ini?')" class="inline">
+                                <button class="bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-xs transition" title="Hapus"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ 7 if session.get('admin') else 6 }}" class="text-center py-8 text-gray-400">Belum ada data warga</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="px-5 py-4 border-t border-gray-100 flex justify-between items-center">
+        <p class="text-sm text-gray-500">Halaman {{ page }} dari {{ total_pages }}</p>
+        <div class="flex gap-1">
+            <a href="{{ url_for('warga_list', tahun=tahun, blok=blok_filter, sort=sort, order=order, page=page-1) }}"
+               class="px-3 py-1.5 rounded text-sm {% if page <= 1 %}text-gray-300 pointer-events-none{% else %}bg-gray-100 hover:bg-gray-200 text-gray-700{% endif %}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                <span class="px-3 py-1.5 rounded text-sm bg-primary-500 text-white font-medium">{{ p }}</span>
+                {% elif p == 1 or p == total_pages or (p >= page-2 and p <= page+2) %}
+                <a href="{{ url_for('warga_list', tahun=tahun, blok=blok_filter, sort=sort, order=order, page=p) }}"
+                   class="px-3 py-1.5 rounded text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">{{ p }}</a>
+                {% elif p == page-3 or p == page+3 %}
+                <span class="px-2 py-1.5 text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+            <a href="{{ url_for('warga_list', tahun=tahun, blok=blok_filter, sort=sort, order=order, page=page+1) }}"
+               class="px-3 py-1.5 rounded text-sm {% if page >= total_pages %}text-gray-300 pointer-events-none{% else %}bg-gray-100 hover:bg-gray-200 text-gray-700{% endif %}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

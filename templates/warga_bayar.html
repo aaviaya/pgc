@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block title %}Pembayaran - PGC{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('warga_list', tahun=tahun) }}" class="text-primary-600 hover:text-primary-800 text-sm"><i class="fas fa-arrow-left mr-1"></i>Kembali</a>
+</div>
+
+<div class="bg-white rounded-xl shadow mb-6">
+    <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+        <div>
+            <h3 class="font-semibold text-gray-800">
+                <i class="fas fa-user text-primary-500 mr-2"></i>
+                {{ warga.nama or '(tanpa nama)' }}
+                <span class="text-gray-400 font-normal text-sm ml-2">Blok {{ warga.blok }} No {{ warga.no_rumah }}</span>
+                {% if warga.status == 'Huni' or warga.status == 'Sudah' %}
+                <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium ml-2">{{ warga.status }}</span>
+                {% else %}
+                <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-xs font-medium ml-2">{{ warga.status }}</span>
+                {% endif %}
+            </h3>
+        </div>
+        <div class="flex gap-1">
+            {% for t in tahun_list %}
+            <a href="{{ url_for('warga_bayar', id=warga.id, tahun=t) }}" class="px-3 py-1 rounded text-xs font-medium {% if t == tahun %}bg-primary-100 text-primary-700{% else %}text-gray-400 hover:text-gray-600{% endif %}">{{ t }}</a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h4 class="font-semibold text-gray-700 text-sm"><i class="fas fa-history text-primary-500 mr-1"></i>Riwayat Pembayaran {{ tahun }}</h4>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 uppercase text-xs tracking-wider">
+                        <th class="text-left px-4 py-3">Bulan</th>
+                        <th class="text-right px-4 py-3">Jumlah</th>
+                        <th class="text-center px-4 py-3">Status</th>
+                        <th class="text-center px-4 py-3">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for b in bulan_list %}
+                    {% set p = payments|selectattr('bulan', 'equalto', b)|first %}
+                    <tr class="{% if p %}bg-green-50/50{% endif %}">
+                        <td class="px-4 py-3 font-medium">{{ b }}</td>
+                        <td class="px-4 py-3 text-right font-mono">
+                            {% if p %}
+                            {{ "{:,.0f}".format(p.jumlah) }}
+                            {% else %}
+                            <span class="text-gray-300">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if p and p.jumlah > 0 %}
+                            <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">Lunas</span>
+                            {% elif p and p.jumlah == 0 %}
+                            <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">0</span>
+                            {% else %}
+                            <span class="bg-red-50 text-red-400 px-2 py-0.5 rounded-full text-xs">Belum</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            {% if p %}
+                            <form method="POST" action="{{ url_for('bayar_hapus', id=p.id) }}" onsubmit="return confirm('Hapus pembayaran?')" class="inline">
+                                <button class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow">
+        <div class="px-5 py-4 border-b border-gray-100">
+            <h4 class="font-semibold text-gray-700 text-sm"><i class="fas fa-plus-circle text-primary-500 mr-1"></i>Catat Pembayaran {{ tahun }}</h4>
+        </div>
+        <form method="POST" action="{{ url_for('bayar_tambah', id=warga.id) }}" class="p-5 space-y-4">
+            <input type="hidden" name="tahun" value="{{ tahun }}">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
+                <select name="bulan" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+                    {% for b in bulan_list %}
+                    <option value="{{ b }}">{{ b }} {{ tahun }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Rincian Iuran</label>
+                {% for k in iuran_kats %}
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">{{ k.nama }}</span>
+                    <span class="font-mono text-gray-800">{{ "{:,.0f}".format(k.jumlah) }}</span>
+                </div>
+                {% endfor %}
+                <div class="flex justify-between text-sm font-semibold border-t border-gray-300 pt-1 mt-1">
+                    <span class="text-gray-800">Total</span>
+                    <span class="font-mono">{{ "{:,.0f}".format(iuran_total) }}</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Dibayar (Rp)</label>
+                <input type="number" name="jumlah" value="{{ iuran_total }}" required min="0" step="1000"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400">
+                <p class="text-xs text-gray-400 mt-1">Iuran {{ tahun }}: Rp {{ "{:,.0f}".format(iuran_total) }}/bulan</p>
+            </div>
+            <button type="submit" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg text-sm transition w-full">
+                <i class="fas fa-save mr-1"></i>Simpan Pembayaran
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

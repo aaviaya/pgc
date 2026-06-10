@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - PGC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
+        <div class="text-center mb-6">
+            <i class="fas fa-lock text-primary-500 text-3xl mb-2"></i>
+            <h1 class="text-xl font-bold text-gray-800">Admin PGC</h1>
+            <p class="text-sm text-gray-400">Masukkan password untuk mengelola data</p>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 px-3 py-2 rounded-lg text-white text-sm {% if category == 'danger' %}bg-red-500{% else %}bg-green-500{% endif %}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <input type="password" name="password" placeholder="Password" required
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 mb-4">
+            <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium py-2.5 rounded-lg text-sm transition">Masuk</button>
+        </form>
+        <a href="{{ url_for('dashboard') }}" class="block text-center text-xs text-gray-400 hover:text-gray-600 mt-4">&larr; Kembali ke Dashboard</a>
+    </div>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</body>
+</html>
