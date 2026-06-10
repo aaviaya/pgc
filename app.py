@@ -5,7 +5,7 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get('SECRET_KEY', 'pgc-secret-key-2025')
 
 @app.context_processor
@@ -18,13 +18,16 @@ def inject_globals():
     return dict(tahun_list=tahun_list, tahun_range=f"{min(tahun_list)}-{max(tahun_list)}")
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'pgc123')
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
+IS_VERCEL = os.environ.get('VERCEL', '') == '1'
+BASE_DIR = '/tmp' if IS_VERCEL else os.path.dirname(__file__)
+
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'}
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'pgc.db')
+DB_PATH = os.path.join(BASE_DIR, 'pgc.db')
 
 BLOK_LIST = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'B4', 'C1', 'C2', 'C3', 'D1', 'D2', 'D3', 'D4', 'D5']
 BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
