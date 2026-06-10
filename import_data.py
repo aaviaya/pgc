@@ -12,7 +12,6 @@ from app import get_db, BULAN_LIST
 
 def import_csv(csv_path, tahun):
     conn = get_db()
-    cur = conn.cursor()
 
     with open(csv_path, 'r', encoding='utf-8-sig') as f:
         rows = list(csv.reader(f))
@@ -83,7 +82,7 @@ def import_csv(csv_path, tahun):
             status = 'Belum Huni'
 
         # Try to find existing resident by blok+no_rumah
-        existing = cur.execute(
+        existing = conn.execute(
             "SELECT id FROM residents WHERE blok=? AND no_rumah=?",
             (current_blok, no_rumah)
         ).fetchone()
@@ -91,10 +90,10 @@ def import_csv(csv_path, tahun):
         if existing:
             resident_id = existing['id']
             # Update name if different
-            cur.execute("UPDATE residents SET nama=?, status=? WHERE id=?",
+            conn.execute("UPDATE residents SET nama=?, status=? WHERE id=?",
                        (nama, status, resident_id))
         else:
-            cur.execute(
+            conn.execute(
                 "INSERT INTO residents (blok, no_rumah, nama, status) VALUES (?,?,?,?)",
                 (current_blok, no_rumah, nama, status)
             )
@@ -114,7 +113,7 @@ def import_csv(csv_path, tahun):
                             amount = int(cleaned)
                             if amount > 0:
                                 try:
-                                    cur.execute(
+                                    conn.execute(
                                         "INSERT INTO payments (resident_id, bulan, tahun, jumlah) VALUES (?,?,?,?)",
                                         (resident_id, bulan, tahun, amount)
                                     )
@@ -134,7 +133,7 @@ def import_expenses(csv_path, tahun):
     CSV columns: [empty, section_no, no, description, date, amount, source]
     """
     conn = get_db()
-    cur = conn.cursor()
+    
 
     with open(csv_path, 'r', encoding='utf-8-sig') as f:
         rows = list(csv.reader(f))
@@ -199,7 +198,7 @@ def import_expenses(csv_path, tahun):
             continue
         seen.add(key)
 
-        cur.execute(
+        conn.execute(
             "INSERT INTO expenses (tahun, bulan, kategori, tanggal, keterangan, jumlah) VALUES (?,?,?,?,?,?)",
             (tahun, current_bulan, kategori, tanggal, keterangan, jumlah)
         )

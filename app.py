@@ -1,9 +1,9 @@
-import sqlite3
 import os
 from datetime import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
+from db import Database
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.environ.get('SECRET_KEY', 'pgc-secret-key-2025')
@@ -34,11 +34,7 @@ BULAN_LIST = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus'
 KATEGORI_LIST = ['Kas', 'Keamanan', 'Sampah', 'Fee Wifi']
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+    return Database()
 
 def init_db():
     conn = get_db()
@@ -93,19 +89,6 @@ def init_db():
                 conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Kas', 10000))
                 conn.execute("INSERT INTO iuran_kategori (tahun, nama, jumlah) VALUES (?,?,?)", (t, 'Keamanan', 15000))
         conn.commit()
-    # Add columns if missing (migrations)
-    try:
-        conn.execute("ALTER TABLE payments ADD COLUMN tahun INTEGER DEFAULT 2025")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-    try:
-        conn.execute("ALTER TABLE expenses ADD COLUMN bukti TEXT DEFAULT ''")
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass
-    except sqlite3.OperationalError:
-        pass
     conn.close()
 
 init_db()
@@ -273,7 +256,7 @@ def warga_tambah():
                          (blok, no_rumah, nama, status))
             conn.commit()
             flash('Warga berhasil ditambahkan', 'success')
-        except sqlite3.IntegrityError:
+        except conn.IntegrityError as e:
             flash('Data warga sudah ada!', 'danger')
         conn.close()
         return redirect(url_for('warga_list'))
@@ -310,7 +293,7 @@ def warga_edit(id):
                          (blok, no_rumah, nama, status, id))
             conn.commit()
             flash('Data warga berhasil diupdate', 'success')
-        except sqlite3.IntegrityError:
+        except conn.IntegrityError as e:
             flash('Data sudah ada!', 'danger')
         conn.close()
         return redirect(url_for('warga_list'))
@@ -351,7 +334,7 @@ def bayar_tambah(id):
                      (id, bulan, tahun, jumlah))
         conn.commit()
         flash(f'Pembayaran {bulan} {tahun} berhasil dicatat', 'success')
-    except sqlite3.IntegrityError:
+    except conn.IntegrityError as e:
         flash(f'Pembayaran {bulan} {tahun} sudah ada!', 'danger')
     conn.close()
     return redirect(url_for('warga_bayar', id=id, tahun=tahun))
