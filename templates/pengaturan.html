@@ -13,24 +13,26 @@
             <p class="text-xs text-gray-500">Atur rincian iuran per tahun</p>
         </div>
     </a>
-    <div class="bg-white rounded-xl shadow p-5 flex items-center space-x-4">
-        <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600 shrink-0">
-            <i class="fas fa-database text-xl"></i>
+    <div class="bg-white rounded-xl shadow p-5 hover:shadow-md transition flex items-center space-x-4 cursor-pointer" onclick="document.getElementById('export-link').click()">
+        <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
+            <i class="fas fa-download text-xl"></i>
         </div>
-        <div class="min-w-0 flex-1">
-            <h4 class="font-semibold text-gray-800">Backup & Restore</h4>
-            <p class="text-xs text-gray-500 mb-2">Export / import data database</p>
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ url_for('pengaturan_export') }}" class="inline-flex items-center px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition text-xs">
-                    <i class="fas fa-download mr-1"></i>Export
-                </a>
-                <form method="POST" action="{{ url_for('pengaturan_import') }}" enctype="multipart/form-data" class="flex items-center gap-1">
-                    <input type="file" name="file" accept=".json" required class="text-xs border border-gray-300 rounded px-2 py-1.5 max-w-[100px]">
-                    <button type="submit" class="inline-flex items-center px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-xs" onclick="return confirm('Yakin restore? Semua data saat ini akan diganti dengan data dari file backup.')">
-                        <i class="fas fa-upload mr-1"></i>Restore
-                    </button>
-                </form>
-            </div>
+        <div>
+            <h4 class="font-semibold text-gray-800">Backup Data</h4>
+            <p class="text-xs text-gray-500">Download database sebagai file JSON</p>
+            <a id="export-link" href="{{ url_for('pengaturan_export') }}" class="hidden"></a>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-5 hover:shadow-md transition flex items-center space-x-4 cursor-pointer" onclick="document.getElementById('file-input').click()">
+        <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
+            <i class="fas fa-upload text-xl"></i>
+        </div>
+        <div>
+            <h4 class="font-semibold text-gray-800">Restore Data</h4>
+            <p class="text-xs text-gray-500">Pulihkan data dari file backup</p>
+            <form id="restore-form" method="POST" action="{{ url_for('pengaturan_import') }}" enctype="multipart/form-data" class="hidden">
+                <input id="file-input" type="file" name="file" accept=".json" required onchange="if(this.files.length && confirm('Yakin restore? Semua data saat ini akan diganti dengan data dari file backup.')) this.form.submit()">
+            </form>
         </div>
     </div>
 </div>
